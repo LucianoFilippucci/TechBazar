@@ -150,6 +150,12 @@
     }, {
       "path": "/REST/user/notification/unread",
       "enforcement-mode": "ENFORCING"
+    }, {
+      "path": "/REST/product/{product-id}",
+      "enforcement-mode": "DISABLED"
+    }, {
+      "path": "/REST/product/{keyword}",
+      "enforcement-mode": "DISABLED"
     }
   ]
 }

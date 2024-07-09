@@ -2,11 +2,13 @@ package ovh.homecitadel.uni.techbazar.Controller;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
+import jakarta.ws.rs.Path;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import ovh.homecitadel.uni.techbazar.Entity.Product.ProductEntity;
 import ovh.homecitadel.uni.techbazar.Helper.Exceptions.ObjectNotFoundException;
 import ovh.homecitadel.uni.techbazar.Helper.Exceptions.UnauthorizedAccessException;
 import ovh.homecitadel.uni.techbazar.Helper.Model.Request.NewProductModelRequest;
@@ -136,5 +138,51 @@ public class ProductController {
         );
     }
 
+
+    @GetMapping
+    @RequestMapping("/{product-id}")
+    public ResponseEntity<ResponseModel> getProductById(@PathVariable("product-id") Long productId) {
+        HttpStatus status = HttpStatus.OK;
+        String responseString = "";
+        ProductEntity product = null;
+
+        try {
+            product = this.productService.getById(productId);
+        } catch (ObjectNotFoundException e) {
+            responseString = e.getMessage();
+            status = HttpStatus.NOT_FOUND;
+        }
+
+        return ResponseEntity.ok(
+                ResponseModel.builder()
+                        .timeStamp(LocalDateTime.now())
+                        .status(status)
+                        .message(responseString)
+                        .reason(responseString)
+                        .statusCode(status.value())
+                        .data(Map.of("response", status == HttpStatus.OK ? product : null))
+                        .build()
+        );
+
+    }
+
+    @GetMapping
+    @RequestMapping("/find/product/{keyword}")
+    public ResponseEntity<ResponseModel> getProductsByKeyword(@PathVariable("keyword") String keyword) {
+
+
+
+
+        return ResponseEntity.ok(
+                ResponseModel.builder()
+                        .timeStamp(LocalDateTime.now())
+                        .message("")
+                        .reason("METHOD NOT IMPLEMENTED.")
+                        .statusCode(HttpStatus.NOT_IMPLEMENTED.value())
+                        .status(HttpStatus.NOT_IMPLEMENTED)
+                        .data(null)
+                        .build()
+        );
+    }
 
 }

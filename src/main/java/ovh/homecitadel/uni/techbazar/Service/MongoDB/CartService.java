@@ -47,12 +47,18 @@ public class CartService {
 
         List<String> tmpCoupons = cart.getCoupons();
         List<CouponEntity> coupons = new ArrayList<>();
-        if(tmpCoupons.size() > 0) {
-            for(String cp : tmpCoupons) {
-                Optional<CouponEntity> tmp2 = this.couponRepository.findById(cp);
-                tmp2.ifPresent(coupons::add);
+
+        if(tmpCoupons == null)
+            tmpCoupons = new ArrayList<>();
+        else {
+            if(tmpCoupons.size() > 0) {
+                for(String cp : tmpCoupons) {
+                    Optional<CouponEntity> tmp2 = this.couponRepository.findById(cp);
+                    tmp2.ifPresent(coupons::add);
+                }
             }
         }
+
 
         BigDecimal cartTotal = BigDecimal.ZERO;
         BigDecimal cartTax = BigDecimal.ZERO;
