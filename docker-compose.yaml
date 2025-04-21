@@ -1,0 +1,89 @@
+
+services:
+  mysql:
+      image: mysql:latest
+      container_name: mysql
+      ports:
+        - "33061:3306"
+      environment:
+        - MYSQL_DATABASE=keycloak
+        - MYSQL_USER=kcUser
+        - MYSQL_PASSWORD=@Verizon64_
+        - MYSQL_ROOT_PASSWORD=@Verizon64_
+      healthcheck:
+        test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+        start_period: 20s
+        timeout: 20s
+        retries: 10
+      volumes:
+        - ./databases_volumes/mysqldata:/var/lib/mysql
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0.5
+    container_name: keycloak
+    environment:
+      - KEYCLOAK_USER=admin
+      - KEYCLOAK_HOSTNAME=localhost
+      - KEYCLOAK_PASSWORD=@Verizon64_
+      - JDBC_PARAMS=useSSL=false
+      - KEYCLOAK_HTTP_PORT=8080
+      - KEYCLOAK_HTTP_HOSTNAME=keycloak
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=@Verizon64_
+    ports:
+      - "8080:8080"
+    command:
+      - "start-dev"
+      - "--features=declarative-user-profile"
+      - "--db mysql"
+      - "--db-password @Verizon64_"
+      - "--db-username kcUser"
+      - "--db-url-host mysql"
+      - "--db-url-database keycloak"
+    depends_on:
+      - mysql
+    healthcheck:
+      test: "curl -f http://localhost:8080/auth || exit 1"
+      start_period: 20s
+      timeout: 20s
+      retries: 10
+  mongodb:
+    container_name: mongodb
+    image: mongo:latest
+    restart: always
+    command: 
+      - --storageEngine
+      - wiredTiger
+      - --auth
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
+    ports:
+      - "27018:27017"
+    volumes:
+      - ./databases_volumes/mongodb-data:/data/db
+      - ./databases_volumes/db/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js
+    env_file: .env
+  techbazar:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./src:/app/src
+      - ./pom.xml:/app/pom.xml
+      - ./target:/app/target
+    restart: always
+    depends_on:
+      - mysql
+      - mongodb
+      - keycloak
+    environment:
+       SPRING_PROFILES_ACTIVE: docker
+       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/techbazar?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=Europe/Paris
+       SPRING_MONGODB_URI: mongodb://techbazar:%40Verizon64_@mongodb:27017/techbazar?authSource=admin&authMechanism=SCRAM-SHA-1
+volumes:
+  mysqldata:
+  
+  
