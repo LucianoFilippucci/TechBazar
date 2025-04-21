@@ -16,6 +16,8 @@ import ovh.homecitadel.uni.techbazar.Helper.Model.ResponseModel;
 import ovh.homecitadel.uni.techbazar.Helper.Model.User.User;
 import ovh.homecitadel.uni.techbazar.Helper.Model.User.UserAddress;
 import ovh.homecitadel.uni.techbazar.Helper.Model.WishlistResponse;
+import ovh.homecitadel.uni.techbazar.Helper.Notification.MessageModel;
+import ovh.homecitadel.uni.techbazar.Service.NotificationSystem;
 import ovh.homecitadel.uni.techbazar.Service.User.UserService;
 import ovh.homecitadel.uni.techbazar.Service.User.WishlistService;
 
@@ -31,10 +33,12 @@ public class UserController {
 
     private final UserService userService;
     private final WishlistService wishlistService;
+    private final NotificationSystem notificationSystem;
 
-    public UserController(UserService userService, WishlistService wishlistService) {
+    public UserController(UserService userService, WishlistService wishlistService, NotificationSystem notificationSystem) {
         this.userService = userService;
         this.wishlistService = wishlistService;
+        this.notificationSystem = notificationSystem;
     }
 
 
@@ -138,6 +142,8 @@ public class UserController {
         String message = "";
         HttpStatus status = HttpStatus.CREATED;
 
+        System.out.println("INSIDE THE NEW ADDRESS MAPPING");
+
         try {
             address = this.userService.newUserAddress(jwt.getSubject(), userAddress);
             message = "Address Created.";
@@ -150,12 +156,41 @@ public class UserController {
           ResponseModel.builder()
                   .timeStamp(LocalDateTime.now())
                   .status(status)
+                  .message(message)
+                  .reason(reason)
                   .statusCode(status.value())
                   .data(Map.of("address", status == HttpStatus.CREATED ? address : ""))
                   .build()
         );
     }
 
+
+    @PostMapping
+    @RequestMapping("/address/set-default/{address-id}")
+    public ResponseEntity<ResponseModel> setDefaultAddress(@AuthenticationPrincipal Jwt jwt, @PathVariable("address-id") Long addressId) {
+        HttpStatus status = HttpStatus.OK;
+        String reason = "";
+        UserAddressEntity userAddress = null;
+        String message = "";
+
+        try {
+            userAddress = this.userService.setDefaultAddress(addressId);
+            message = "address updated.";
+        } catch(ObjectNotFoundException e) {
+            reason = e.getMessage();
+            status = HttpStatus.NOT_FOUND;
+        }
+        return ResponseEntity.ok(
+                ResponseModel.builder()
+                        .timeStamp(LocalDateTime.now())
+                        .statusCode(status.value())
+                        .status(status)
+                        .reason(reason)
+                        .message(message)
+                        .data(status == HttpStatus.OK ? Map.of("address", userAddress): null)
+                        .build()
+        );
+    }
     @PutMapping
     @RequestMapping("/address/edit/{address-id}")
     public ResponseEntity<ResponseModel> editAddress(@AuthenticationPrincipal Jwt jwt, @RequestBody @Valid UserAddress userAddress, @PathVariable("address-id") Long addressId) {
@@ -297,21 +332,112 @@ public class UserController {
         );
     }
 
-    @PostMapping
-
     @GetMapping
-    @RequestMapping("/notification/unread")
-    public ResponseEntity<ResponseModel> getUnreadNotifications(@AuthenticationPrincipal Jwt jwt) {
+    @RequestMapping("/wishlist/{product-id}")
+    public ResponseEntity<ResponseModel> isProductWishlisted(@AuthenticationPrincipal Jwt jwt, @PathVariable("product-id") Long productId) {
+        String message = "";
+        String reason = "";
+        HttpStatus status = HttpStatus.OK;
+        boolean response = false;
+
+        try {
+            if(this.wishlistService.isProductWishlisted(jwt.getSubject(), productId)) {
+                message = "product is wishlisted";
+                response = true;
+            } else {
+                message = "product is not wishlisted";
+            }
+        } catch (ObjectNotFoundException e) {
+            message = "product Not found";
+            reason = e.getMessage();
+            status = HttpStatus.NOT_FOUND;
+        }
+
         return ResponseEntity.ok(
                 ResponseModel.builder()
                         .timeStamp(LocalDateTime.now())
-                        .message("Unread Notifications")
-                        .statusCode(HttpStatus.OK.value())
-                        .status(HttpStatus.OK)
-                        .data(Map.of("response", this.userService.getUnreadNotification(jwt.getSubject())))
+                        .statusCode(status.value())
+                        .status(status)
+                        .data(Map.of("response", response))
                         .build()
         );
     }
 
+    @GetMapping
+    @RequestMapping("/notification/unread")
+    public ResponseEntity<ResponseModel> getUnreadNotifications(@AuthenticationPrincipal Jwt jwt) {
+        String message = "";
+        HttpStatus status = HttpStatus.OK;
+        int value = 0;
+        try {
+            value = this.userService.getUnreadNotification(jwt.getSubject());
+            message = "Unread Notifications";
+        } catch (ObjectNotFoundException e) {
+            message = e.getMessage();
+            status = HttpStatus.NOT_FOUND;
+            value =  -1;
+        }
+        return ResponseEntity.ok(
+                ResponseModel.builder()
+                        .timeStamp(LocalDateTime.now())
+                        .message(message)
+                        .statusCode(status.value())
+                        .status(status)
+                        .data(Map.of("response", value))
+                        .build()
+        );
+    }
+
+    @GetMapping
+    @RequestMapping("/notification/")
+    public ResponseEntity<ResponseModel> getUserNotifications(@AuthenticationPrincipal Jwt jwt) {
+        String message = "";
+        HttpStatus status = HttpStatus.OK;
+        List<MessageModel> messages = new ArrayList<>();
+        try {
+            messages = this.notificationSystem.getUserNotifications(jwt.getSubject());
+            message = "User Notifications";
+        } catch (ObjectNotFoundException e) {
+            message = e.getMessage();
+            status = HttpStatus.NOT_FOUND;
+        }
+
+        return ResponseEntity.ok(
+                ResponseModel.builder()
+                        .timeStamp(LocalDateTime.now())
+                        .status(status)
+                        .statusCode(status.value())
+                        .message(message)
+                        .data(Map.of("messages", messages))
+                        .build()
+        );
+    }
+
+    @PostMapping
+    @RequestMapping("/notification/send")
+    public ResponseEntity<ResponseModel> sendMessage(@AuthenticationPrincipal Jwt jwt, @RequestBody @Valid MessageModel message) {
+        String response = "";
+        HttpStatus status = HttpStatus.OK;
+
+        try {
+            this.notificationSystem.createNotification(message);
+            response = "Message Sent.";
+        } catch (ObjectNotFoundException e) {
+            response = e.getMessage();
+            status = HttpStatus.NOT_FOUND;
+        }
+
+        return ResponseEntity.ok(
+                ResponseModel.builder()
+                        .timeStamp(LocalDateTime.now())
+                        .message(response)
+                        .statusCode(status.value())
+                        .status(status)
+                        .data(Map.of("", "null"))
+                        .build()
+        );
+
+
+    }
 
 }

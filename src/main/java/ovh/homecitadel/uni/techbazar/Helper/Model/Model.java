@@ -8,20 +8,10 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 public class Model {
-    private String productRam;
-    private String productCPU;
-    private String productMainStorage;
-    private String productAdditionalStorage;
-    private String productOS;
-    private String productMainCamera;
-    private String productFrontCamera;
-    private String productAlternativeCamera;
-    private String productColor;
-    private String productDisplay;
-    private String productSize;
-    private boolean hasGPS;
-    private boolean hasCellular;
-    private int productQuantity;
-    private BigDecimal productPrice;
-
+    private Long modelId;
+    private String configColor;
+    private int configQty;
+    private BigDecimal configPrice;
+    private String configuration; // RAM | ROM
+    private int configSoldQty;
 }

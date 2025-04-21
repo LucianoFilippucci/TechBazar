@@ -1,9 +1,10 @@
 {
   "realm": "techbazar",
-  "auth-server-url": "http://localhost:8082",
+  "auth-server-url": "http://192.168.1.104:8080",
   "resource": "techbazar-backend",
   "credentials": {
-    "secret": "vKXHyqQSg0leiyOrcnPiltGyLlxg1nOW"
+    "secret": "We5yAqxMD958JGToq2IUmm0UQV5xqN0F"
+
   },
   "paths": [
     {
@@ -15,7 +16,10 @@
     },  {
       "path": "/REST/product/new",
       "enforcement-mode": "ENFORCING"
-    },  {
+    }, {
+      "path": "/REST/product/category",
+      "enforcement-mode": "DISABLED"
+    }, {
       "path": "/REST/product/new-model",
       "enforcement-mode": "ENFORCING"
     }, {
@@ -41,6 +45,9 @@
       "enforcement-mode": "ENFORCING"
     }, {
       "path": "/REST/user/address/delete/{address-id}",
+      "enforcement-mode": "ENFORCING"
+    }, {
+      "path": "/REST/user/address/set-default/{address-id}",
       "enforcement-mode": "ENFORCING"
     }, {
       "path": "/REST/user/cart",
@@ -73,6 +80,15 @@
       "path": "/REST/user/order/update/{order-id}",
       "enforcement-mode": "ENFORCING"
     }, {
+      "path": "/REST/user/notification/send",
+      "enforcement-mode": "ENFORCING"
+    }, {
+      "path": "/REST/user/notification/unread",
+      "enforcement-mode": "ENFORCING"
+    }, {
+      "path": "/REST/user/notification/",
+      "enforcement-mode": "ENFORCING"
+    },{
       "path": "/REST/product/review/all/{product-id}",
       "enforcement-mode": "DISABLED"
     }, {
@@ -85,9 +101,25 @@
       "path": "/REST/product/review/delete/{product-id}",
       "enforcement-mode": "ENFORCING"
     }, {
+      "path": "/REST/product/review/{review-id}/like",
+      "enforcement-mode": "ENFORCING"
+    }, {
+      "path": "/REST/product/review/{review-id}/liked",
+      "enforcement-mode": "ENFORCING"
+    }, {
+      "path": "/REST/product/store/{store-id}",
+      "enforcement-mode": "DISABLED"
+    }, {
+      "path": "/REST/product/edit",
+      "enforcement-mode": "ENFORCING"
+    },{
       "path": "/REST/user/wishlist",
       "enforcement-mode": "ENFORCING"
     }, {
+      "path": "/REST/user/wishlist/{product-id}",
+      "enforcement-mode": "ENFORCING"
+    },
+    {
       "path": "/REST/user/wishlist/add/{product-id}",
       "enforcement-mode": "ENFORCING"
     }, {
@@ -107,6 +139,9 @@
       "enforcement-mode": "ENFORCING"
     }, {
       "path": "/REST/coupon/remove/{coupon-id}",
+      "enforcement-mode": "ENFORCING"
+    },{
+      "path": "/REST/coupon/validate",
       "enforcement-mode": "ENFORCING"
     }, {
       "path": "/REST/auction/",
@@ -154,7 +189,7 @@
       "path": "/REST/product/{product-id}",
       "enforcement-mode": "DISABLED"
     }, {
-      "path": "/REST/product/{keyword}",
+      "path": "/REST/product/search/{keyword}",
       "enforcement-mode": "DISABLED"
     }
   ]

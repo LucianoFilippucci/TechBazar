@@ -36,8 +36,9 @@ public class CartController {
         HttpStatus status = HttpStatus.OK;
         CartResponse response = null;
 
+
         try {
-            response = this.cartService.getCart(jwt.getClaim("cartId"));
+            response = this.cartService.getCart(jwt.getClaim("cartId").toString());
             message = "Cart";
         } catch (ObjectNotFoundException e) {
             reason = e.getMessage();

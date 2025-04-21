@@ -10,17 +10,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ovh.homecitadel.uni.techbazar.Entity.User.MongoDB.CartEntity;
 import ovh.homecitadel.uni.techbazar.Entity.User.UserAddressEntity;
+import ovh.homecitadel.uni.techbazar.Entity.UserLiked;
 import ovh.homecitadel.uni.techbazar.Helper.Exceptions.NotNullException;
 import ovh.homecitadel.uni.techbazar.Helper.Exceptions.ObjectNotFoundException;
 import ovh.homecitadel.uni.techbazar.Helper.Exceptions.UnauthorizedAccessException;
 import ovh.homecitadel.uni.techbazar.Helper.Helpers;
 import ovh.homecitadel.uni.techbazar.Helper.Model.User.User;
 import ovh.homecitadel.uni.techbazar.Helper.Model.User.UserAddress;
+import ovh.homecitadel.uni.techbazar.Helper.Notification.MessageModel;
+import ovh.homecitadel.uni.techbazar.Repository.MongoDB.UserLikedRepository;
 import ovh.homecitadel.uni.techbazar.Repository.User.MongoDB.CartRepository;
 import ovh.homecitadel.uni.techbazar.Repository.User.UserAddressRepository;
 import ovh.homecitadel.uni.techbazar.Repository.User.UserCartRepository;
 import ovh.homecitadel.uni.techbazar.Security.KeycloakSecurityUtil;
-import ovh.homecitadel.uni.techbazar.Service.NotificationService;
+import ovh.homecitadel.uni.techbazar.Service.NotificationSystem;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -35,18 +38,20 @@ public class UserService {
     private final UserAddressRepository userAddressRepository;
     private final CartRepository cartRepository;
 
-    private final NotificationService notificationService;
+    private final NotificationSystem notificationSystem;
+    private final UserLikedRepository userLikedRepository;
 
 
     @Value("${realm}")
     private String realm;
 
-    public UserService(KeycloakSecurityUtil keycloakSecurityUtil, UserCartRepository userCartRepository, UserAddressRepository userAddressRepository, CartRepository cartRepository, NotificationService notificationService) {
+    public UserService(UserLikedRepository userLikedRepository, KeycloakSecurityUtil keycloakSecurityUtil, UserCartRepository userCartRepository, UserAddressRepository userAddressRepository, CartRepository cartRepository, NotificationSystem notificationSystem) {
         this.keycloakSecurityUtil = keycloakSecurityUtil;
         this.userCartRepository = userCartRepository;
         this.userAddressRepository = userAddressRepository;
         this.cartRepository = cartRepository;
-        this.notificationService = notificationService;
+        this.notificationSystem = notificationSystem;
+        this.userLikedRepository = userLikedRepository;
     }
 
 
@@ -76,10 +81,18 @@ public class UserService {
             cart.setUpdatedAt(LocalDateTime.now());
             cart.setProducts(new ArrayList<>());
             CartEntity ct = this.cartRepository.save(cart);
+
+            UserLiked userLiked = new UserLiked();
+            userLiked.setLikedReviews(new ArrayList<>());
+            userLiked.setUserId(userId);
+            userLiked.setStoreLiked(new ArrayList<>());
+
+            this.userLikedRepository.save(userLiked);
             if(ct.getCreatedAt() != null)
                 return true;
             else {
                 // TODO: IDK PROBLEMS.
+                return false;
             }
 
         }
@@ -119,14 +132,37 @@ public class UserService {
 
     @Transactional
     public UserAddressEntity newUserAddress(String userId, UserAddress userAddress) throws NotNullException {
+        System.out.println("INSIDE THE NEW ADDRESS SERVICE");
 
         if(userAddress.getStreet() == null) throw new NotNullException("Street can't be null");
         if(userAddress.getState() == null) throw new NotNullException("State can't be null");
         if(userAddress.getCountry() == null) throw new NotNullException("Country can't be null");
         if(userAddress.getPostalCode() == null) throw new NotNullException("Postal Code can't be null");
+        if(userAddress.getAddressName() == null) throw new NotNullException("Address NAme can't be null");
 
         UserAddressEntity address = new UserAddressEntity(userAddress, userId);
 
+        System.out.println(userAddress);
+        System.out.println(address);
+
+
+
+        return this.userAddressRepository.save(address);
+    }
+
+    @Transactional
+    public UserAddressEntity setDefaultAddress(Long addressId) throws ObjectNotFoundException {
+        Optional<UserAddressEntity> tmp = this.userAddressRepository.findById(addressId);
+        if(tmp.isEmpty()) throw new ObjectNotFoundException("Address Not Found.");
+        UserAddressEntity address = tmp.get();
+
+        Optional<UserAddressEntity> oldDefault = this.userAddressRepository.findByIsDefault(true);
+        oldDefault.ifPresent(old -> {
+            old.setDefault(false);
+            this.userAddressRepository.save(old);
+        });
+
+        address.setDefault(true);
         return this.userAddressRepository.save(address);
     }
 
@@ -165,11 +201,14 @@ public class UserService {
     }
 
     @Transactional
-    public int getUnreadNotification(String userId) {
-        return this.notificationService.totalUnreadNotifications(userId);
+    public int getUnreadNotification(String userId) throws ObjectNotFoundException {
+        return this.notificationSystem.getUnreadNotifications(userId);
     }
 
-
+    @Transactional
+    public void sendMessage(MessageModel message) throws ObjectNotFoundException {
+        this.notificationSystem.createNotification(message);
+    }
 
     // ------ PRIVATE USER HELPERS ------ //
 
@@ -205,9 +244,11 @@ public class UserService {
         UserRepresentation userRep = new UserRepresentation();
         if(user.getPIva() != null) {
             userRep.singleAttribute("partitaIva", user.getPIva());
+
         }
 
         userRep.singleAttribute("cartId", cartId);
+        userRep.singleAttribute("phoneNumber", user.getPhoneNumber());
         userRep.setUsername(user.getUsername());
         userRep.setLastName(user.getLastName());
         userRep.setFirstName(user.getFirstName());

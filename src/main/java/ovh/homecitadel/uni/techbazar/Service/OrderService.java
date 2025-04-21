@@ -13,10 +13,10 @@ import ovh.homecitadel.uni.techbazar.Helper.Exceptions.ObjectNotFoundException;
 import ovh.homecitadel.uni.techbazar.Helper.Exceptions.ProductQuantityUnavailableException;
 import ovh.homecitadel.uni.techbazar.Helper.Exceptions.UnauthorizedAccessException;
 import ovh.homecitadel.uni.techbazar.Helper.Helpers;
+import ovh.homecitadel.uni.techbazar.Helper.Model.*;
 import ovh.homecitadel.uni.techbazar.Helper.Model.Cart.ProductInCart;
-import ovh.homecitadel.uni.techbazar.Helper.Model.OrderListModel;
-import ovh.homecitadel.uni.techbazar.Helper.Model.UpdateOrderModel;
 import ovh.homecitadel.uni.techbazar.Helper.OrderStatusEnum;
+import ovh.homecitadel.uni.techbazar.Helper.UnifiedServiceAccess;
 import ovh.homecitadel.uni.techbazar.Repository.Order.MongoDB.OrderDetailsRepository;
 import ovh.homecitadel.uni.techbazar.Repository.Order.MongoDB.StoreOrderRepository;
 import ovh.homecitadel.uni.techbazar.Repository.Order.OrderRepository;
@@ -24,6 +24,7 @@ import ovh.homecitadel.uni.techbazar.Repository.Product.ProductModelRepository;
 import ovh.homecitadel.uni.techbazar.Repository.Product.ProductRepository;
 import ovh.homecitadel.uni.techbazar.Repository.User.MongoDB.CartRepository;
 import ovh.homecitadel.uni.techbazar.Repository.User.UserAddressRepository;
+import ovh.homecitadel.uni.techbazar.Service.Product.ProductService;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -39,8 +40,9 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final ProductModelRepository productModelRepository;
     private final StoreOrderRepository storeOrderRepository;
+    private final UnifiedServiceAccess unifiedServiceAccess;
 
-    public OrderService(OrderRepository orderRepository, OrderDetailsRepository orderDetailsRepository, CartRepository cartRepository, UserAddressRepository userAddressRepository, ProductRepository productRepository, ProductModelRepository productModelRepository, StoreOrderRepository storeOrderRepository) {
+    public OrderService(UnifiedServiceAccess unifiedServiceAccess, OrderRepository orderRepository, OrderDetailsRepository orderDetailsRepository, CartRepository cartRepository, UserAddressRepository userAddressRepository, ProductRepository productRepository, ProductModelRepository productModelRepository, StoreOrderRepository storeOrderRepository) {
         this.orderRepository = orderRepository;
         this.orderDetailsRepository = orderDetailsRepository;
         this.cartRepository = cartRepository;
@@ -48,6 +50,7 @@ public class OrderService {
         this.productRepository = productRepository;
         this.productModelRepository = productModelRepository;
         this.storeOrderRepository = storeOrderRepository;
+        this.unifiedServiceAccess = unifiedServiceAccess;
     }
 
     @Transactional
@@ -75,9 +78,12 @@ public class OrderService {
             if(tmp6.isEmpty()) throw new ObjectNotFoundException("Product Model Not Found");
             ProductModelEntity model = tmp6.get();
 
-            if((model.getProductQuantity() - pic.getQty()) < 0) throw new ProductQuantityUnavailableException("The Selected Quantity is unavailable. MAX: " + model.getProductQuantity());
-            model.setProductQuantity(model.getProductQuantity() - pic.getQty());
-            model.setProductTotalSold(model.getProductTotalSold() + pic.getQty());
+            if((model.getConfigQty() - pic.getQty()) < 0) throw new ProductQuantityUnavailableException("The Selected Quantity is unavailable. MAX: " + model.getConfigQty());
+            model.setConfigQty(model.getConfigQty() - pic.getQty());
+            model.setConfigSoldQty(model.getConfigSoldQty() + pic.getQty());
+
+            product.setProductTotalSold(product.getProductTotalSold() + pic.getQty());
+            product.setProductQuantity(product.getProductQuantity() - pic.getQty());
 
             if(!storesProduct.containsKey(product.getStoreId())) {
                 List<ProductInCart> tmp5 = new ArrayList<>();
@@ -173,7 +179,31 @@ public class OrderService {
         olm.setTrackingCode(order.getTrackingCode());
         olm.setNote(order.getNote());
         olm.setUserId(userId);
-        olm.setProducts(orderDetails.getProducts());
+
+        ArrayList<ProductInCartResponse> products = new ArrayList<>();
+        for(ProductInCart pic: orderDetails.getProducts()) {
+            ProductResponse product = this.unifiedServiceAccess.getProductEntity(pic.getProductId());
+            Model models = new Model();
+            // Technically every PiC should have only 1 model, because every time we hadd
+            // more product of different models, we create a new entry in PiC
+            // and if, eventually, there are more products with same model we just increase the counter duh
+            for(Model model : product.getModels()) {
+                if(model.getModelId().equals(pic.getProductModelId()))
+                    models = model;
+            }
+
+            products.add(new ProductInCartResponse(
+                    product.getProductId(),
+                    models.getModelId(),
+                    models.getConfiguration(),
+                    product.getProductName(),
+                    models.getConfigColor(),
+                    pic.getQty(),
+                    pic.getProductPrice(),
+                    pic.getIva(),
+                    pic.getStoreId()));
+        }
+        olm.setProducts(products);
 
         return olm;
     }
@@ -199,11 +229,36 @@ public class OrderService {
             om.setTrackingCode(oe.getTrackingCode());
             om.setOrderDate(order.getOrderDate());
             om.setLastUpdate(oe.getOrderUpdatedAt());
-            om.setProducts(order.getProducts());
+
+            ArrayList<ProductInCartResponse> products = new ArrayList<>();
+            for(ProductInCart pic: order.getProducts()) {
+                ProductResponse product = this.unifiedServiceAccess.getProductEntity(pic.getProductId());
+                Model models = new Model();
+                // Technically every PiC should have only 1 model, because every time we hadd
+                // more product of different models, we create a new entry in PiC
+                // and if, eventually, there are more products with same model we just increase the counter duh
+                for(Model model : product.getModels()) {
+                    if(model.getModelId().equals(pic.getProductModelId()))
+                        models = model;
+                }
+
+                products.add(new ProductInCartResponse(
+                        product.getProductId(),
+                        models.getModelId(),
+                        models.getConfiguration(),
+                        product.getProductName(),
+                        models.getConfigColor(),
+                        pic.getQty(),
+                        pic.getProductPrice(),
+                        pic.getIva(),
+                        pic.getStoreId()));
+            }
+            om.setProducts(products);
             olm.add(om);
         }
         return olm;
     }
+
 
     @Transactional
     public OrderListModel getStoreOrder(String storeId, String orderId) throws ObjectNotFoundException, UnauthorizedAccessException {
@@ -229,7 +284,32 @@ public class OrderService {
         olm.setTrackingCode(orderEntity.getTrackingCode());
         olm.setShippingAddr(storeOrder.getUserAddress());
         olm.setContactInfo(orderEntity.getContactInfo());
-        olm.setProducts(storeOrder.getProducts());
+
+        ArrayList<ProductInCartResponse> products = new ArrayList<>();
+        for(ProductInCart pic: storeOrder.getProducts()) {
+            ProductResponse product = this.unifiedServiceAccess.getProductEntity(pic.getProductId());
+            Model models = new Model();
+            // Technically every PiC should have only 1 model, because every time we hadd
+            // more product of different models, we create a new entry in PiC
+            // and if, eventually, there are more products with same model we just increase the counter duh
+            for(Model model : product.getModels()) {
+                if(model.getModelId().equals(pic.getProductModelId()))
+                    models = model;
+            }
+
+            products.add(new ProductInCartResponse(
+                    product.getProductId(),
+                    models.getModelId(),
+                    models.getConfiguration(),
+                    product.getProductName(),
+                    models.getConfigColor(),
+                    pic.getQty(),
+                    pic.getProductPrice(),
+                    pic.getIva(),
+                    pic.getStoreId()));
+        }
+
+        olm.setProducts(products);
 
         return olm;
     }
@@ -269,7 +349,37 @@ public class OrderService {
         om.setShippingAddr(order.getShippingAddress());
         om.setExpress(order.getExpress());
         om.setUserId(order.getUserId());
-        om.setProducts(orderDetails.getProducts());
+
+
+        ArrayList<ProductInCartResponse> products = new ArrayList<>();
+        for(ProductInCart pic: orderDetails.getProducts()) {
+            ProductResponse product = this.unifiedServiceAccess.getProductEntity(pic.getProductId());
+            Model models = new Model();
+            // Technically every PiC should have only 1 model, because every time we hadd
+            // more product of different models, we create a new entry in PiC
+            // and if, eventually, there are more products with same model we just increase the counter duh
+            // but since in the frontend I fucked up and now is a bit tricky, probably i should just return a list even thou
+            // we know it's just 1 elem
+            for(Model model : product.getModels()) {
+                if(model.getModelId().equals(pic.getProductModelId()))
+                    models = model;
+            }
+
+            products.add(new ProductInCartResponse(
+                    product.getProductId(),
+                    models.getModelId(),
+                    models.getConfiguration(),
+                    product.getProductName(),
+                    models.getConfigColor(),
+                    pic.getQty(),
+                    pic.getProductPrice(),
+                    pic.getIva(),
+                    pic.getStoreId()));
+        }
+
+        om.setProducts(products);
+
+
         om.setOrderTotal(order.getOrderTotal());
         return om;
     }

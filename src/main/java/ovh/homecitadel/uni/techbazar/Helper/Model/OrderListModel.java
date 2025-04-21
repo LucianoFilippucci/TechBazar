@@ -29,6 +29,7 @@ public class OrderListModel {
     private String note;
     private String trackingCode;
     private String express;
-    private List<ProductInCart> products;
+    private List<ProductInCartResponse> products;
+    private String storeId;
 
 }

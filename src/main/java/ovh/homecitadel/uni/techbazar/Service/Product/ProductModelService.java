@@ -27,35 +27,41 @@ public class ProductModelService {
     }
 
     @Transactional
-    public ArrayList<ProductModelEntity> newProductModel(NewProductModelRequest models) throws ObjectNotFoundException {
-        ArrayList<ProductModelEntity> productModels = new ArrayList<>();
+    public ArrayList<Model> newProductModel(NewProductModelRequest models) throws ObjectNotFoundException {
+        ArrayList<Model> productModels = new ArrayList<>();
         Optional<ProductEntity> tmp = this.productRepository.findByProductId(models.getProductId());
         if(tmp.isEmpty()) throw new ObjectNotFoundException("Product Not found");
         for(Model model : models.getModels()) {
-            ProductModelEntity productModel = new ProductModelEntity();
-            productModel.setProductColor(model.getProductColor());
-            productModel.setProductCPU(model.getProductCPU());
-            productModel.setProductDisplay(model.getProductDisplay());
-            productModel.setProductOs(model.getProductOS());
-            productModel.setProductAdditionalStorage(model.getProductAdditionalStorage());
-            productModel.setProductMainStorage(model.getProductMainStorage());
-            productModel.setProductMainCamera(model.getProductMainCamera());
-            productModel.setProductFrontCamera(model.getProductFrontCamera());
-            productModel.setProductAlternativeCamera(model.getProductAlternativeCamera());
-            productModel.setProductHasCellular(model.isHasCellular());
-            productModel.setProductHasGps(model.isHasGPS());
-            productModel.setProductPrice(model.getProductPrice());
-            productModel.setProductQuantity(model.getProductQuantity());
-            productModel.setProductSize(model.getProductSize());
-            productModel.setProductRam(model.getProductRam());
-
-
-
-            productModel.setProductEntity(tmp.get());
-            productModels.add(this.productModelRepository.save(productModel));
+            ProductModelEntity productConfig = getProductConfig(model, tmp.get());
+            productModels.add(fromEntityToModel(this.productModelRepository.save(productConfig)));
+            tmp.get().setProductQuantity(tmp.get().getProductQuantity() + model.getConfigQty());
         }
 
         return  productModels;
+    }
+
+    public static Model fromEntityToModel(ProductModelEntity productModel) {
+        Model model = new Model();
+        model.setModelId(productModel.getProductModelId());
+        model.setConfigPrice(productModel.getConfigPrice());
+        model.setConfiguration(productModel.getConfiguration());
+        model.setConfigQty(productModel.getConfigQty());
+        model.setConfigColor(productModel.getConfigColor());
+        model.setConfigSoldQty(productModel.getConfigSoldQty());
+        return model;
+    }
+
+    private ProductModelEntity getProductConfig(Model model, ProductEntity tmp) {
+        ProductModelEntity productConfig = new ProductModelEntity();
+        productConfig.setProductEntity(tmp);
+        productConfig.setConfigColor(model.getConfigColor());
+        productConfig.setConfigPrice(model.getConfigPrice());
+        productConfig.setConfigSoldQty(model.getConfigSoldQty());
+        productConfig.setConfiguration(model.getConfiguration());
+        productConfig.setConfigQty(model.getConfigQty());
+        productConfig.setAuctions(new ArrayList<>());
+        productConfig.setDailyOffer(new ArrayList<>());
+        return productConfig;
     }
 
     @Transactional
@@ -70,5 +76,12 @@ public class ProductModelService {
             this.productModelRepository.delete(model);
         else
             throw new UnauthorizedAccessException("This model is not yours.");
+    }
+
+    @Transactional
+    public Model getModel(Long modelId) throws ObjectNotFoundException {
+        if(this.productModelRepository.findById(modelId).isPresent())
+            return fromEntityToModel(this.productModelRepository.findById(modelId).get());
+        else throw new ObjectNotFoundException("Model Not found.");
     }
 }

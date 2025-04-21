@@ -10,6 +10,10 @@ import ovh.homecitadel.uni.techbazar.Entity.User.MongoDB.CartEntity;
 import ovh.homecitadel.uni.techbazar.Helper.Exceptions.ObjectNotFoundException;
 import ovh.homecitadel.uni.techbazar.Helper.Model.Cart.CartResponse;
 import ovh.homecitadel.uni.techbazar.Helper.Model.Cart.ProductInCart;
+import ovh.homecitadel.uni.techbazar.Helper.Model.Model;
+import ovh.homecitadel.uni.techbazar.Helper.Model.ProductInCartResponse;
+import ovh.homecitadel.uni.techbazar.Helper.Model.ProductResponse;
+import ovh.homecitadel.uni.techbazar.Helper.UnifiedServiceAccess;
 import ovh.homecitadel.uni.techbazar.Repository.CouponRepository;
 import ovh.homecitadel.uni.techbazar.Repository.Product.ProductCategoryRepository;
 import ovh.homecitadel.uni.techbazar.Repository.Product.ProductModelRepository;
@@ -30,13 +34,15 @@ public class CartService {
     private final ProductModelRepository productModelRepository;
     private final CouponRepository couponRepository;
     private final ProductCategoryRepository productCategoryRepository;
+    private final UnifiedServiceAccess unifiedServiceAccess;
 
-    public CartService(CartRepository cartRepository, ProductRepository productRepository, ProductModelRepository productModelRepository, CouponRepository couponRepository, ProductCategoryRepository productCategoryRepository) {
+    public CartService(CartRepository cartRepository, ProductRepository productRepository, ProductModelRepository productModelRepository, CouponRepository couponRepository, ProductCategoryRepository productCategoryRepository, UnifiedServiceAccess unifiedServiceAccess) {
         this.cartRepository = cartRepository;
         this.productRepository = productRepository;
         this.productModelRepository = productModelRepository;
         this.couponRepository = couponRepository;
         this.productCategoryRepository = productCategoryRepository;
+        this.unifiedServiceAccess = unifiedServiceAccess;
     }
 
     @Transactional
@@ -51,7 +57,7 @@ public class CartService {
         if(tmpCoupons == null)
             tmpCoupons = new ArrayList<>();
         else {
-            if(tmpCoupons.size() > 0) {
+            if(!tmpCoupons.isEmpty()) {
                 for(String cp : tmpCoupons) {
                     Optional<CouponEntity> tmp2 = this.couponRepository.findById(cp);
                     tmp2.ifPresent(coupons::add);
@@ -64,6 +70,8 @@ public class CartService {
         BigDecimal cartTax = BigDecimal.ZERO;
         BigDecimal discountedPrice = BigDecimal.ZERO;
         int cartElems = 0;
+
+        ArrayList<ProductInCartResponse> productInCartResponses = new ArrayList<>();
 
         for (ProductInCart pic : cart.getProducts()) {
             BigDecimal price = pic.getProductPrice().multiply(BigDecimal.valueOf(pic.getQty()));
@@ -89,10 +97,25 @@ public class CartService {
                 }
             }
 
+            Model model = this.unifiedServiceAccess.getModelEntity(pic.getProductModelId());
+            ProductResponse product = this.unifiedServiceAccess.getProductEntity(pic.getProductId());
+
+            productInCartResponses.add(new ProductInCartResponse(
+                    pic.getProductId(),
+                    pic.getProductModelId(),
+                    model.getConfiguration(),
+                    product.getProductName(),
+                    model.getConfigColor(),
+                    pic.getQty(),
+                    pic.getProductPrice(),
+                    pic.getIva(),
+                    pic.getStoreId()
+            ));
+
         }
 
         BigDecimal totalAfterCoupons = cartTotal.subtract(discountedPrice);
-        return new CartResponse(cartTotal, cartTax, cart.getProducts(), cartElems, totalAfterCoupons, tmpCoupons);
+        return new CartResponse(cartTotal, cartTax, productInCartResponses, cartElems, totalAfterCoupons, tmpCoupons);
     }
 
     @Transactional
@@ -110,7 +133,7 @@ public class CartService {
         if(tmp3.isEmpty()) throw new ObjectNotFoundException("Product Model Not Found");
         ProductModelEntity model = tmp3.get();
 
-        ProductInCart pic = new ProductInCart(product.getProductId(), model.getProductModelId(), qty, model.getProductPrice(), product.getProductIva());
+        ProductInCart pic = new ProductInCart(product.getProductId(), model.getProductModelId(), qty, model.getConfigPrice(), product.getProductIva(), product.getStoreId());
 
         cart.getProducts().add(pic);
         cart.setUpdatedAt(LocalDateTime.now());
@@ -145,4 +168,5 @@ public class CartService {
         cart.setUpdatedAt(now);
         return this.cartRepository.save(cart).getUpdatedAt().equals(now);
     }
+
 }

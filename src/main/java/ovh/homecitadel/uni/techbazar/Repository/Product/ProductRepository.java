@@ -1,5 +1,7 @@
 package ovh.homecitadel.uni.techbazar.Repository.Product;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import ovh.homecitadel.uni.techbazar.Entity.Product.ProductEntity;
@@ -15,4 +17,6 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
     Optional<ProductEntity> findByProductId(Long id);
 
     Collection<ProductEntity> findByStoreId(String storeId);
+
+    Page<ProductEntity> findProductEntitiesByProductNameContaining(String keyword, Pageable pageable);
 }

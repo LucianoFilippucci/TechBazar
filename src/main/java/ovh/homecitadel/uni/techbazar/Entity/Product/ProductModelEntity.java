@@ -25,68 +25,24 @@ public class ProductModelEntity {
     private Long productModelId;
 
     @Basic
-    @Column(name = "product_ram")
-    private String productRam;
+    @Column(name = "config_color", nullable = false, length = 6)
+    private String configColor;
 
     @Basic
-    @Column(name = "product_cpu")
-    private String productCPU;
+    @Column(name = "config_qty", nullable = false)
+    private int configQty;
 
     @Basic
-    @Column(name = "product_main_storage")
-    private String productMainStorage;
+    @Column(name = "config_price", nullable = false, precision = 10, scale = 2)
+    private BigDecimal configPrice;
 
     @Basic
-    @Column(name = "product_additional_storage")
-    private String productAdditionalStorage;
+    @Column(name = "configuration", length = 10, nullable = false)
+    private String configuration;
 
     @Basic
-    @Column(name = "product_os")
-    private String productOs;
-
-    @Basic
-    @Column(name = "product_main_camera")
-    private String productMainCamera;
-
-    @Basic
-    @Column(name = "product_front_camera")
-    private String productFrontCamera;
-
-    @Basic
-    @Column(name = "product_alternative_camera")
-    private String productAlternativeCamera;
-
-    @Basic
-    @Column(name = "product_color")
-    private String productColor;
-
-    @Basic
-    @Column(name = "product_display")
-    private String productDisplay;
-
-    @Basic
-    @Column(name = "product_size")
-    private String productSize;
-
-    @Basic
-    @Column(name = "product_gps")
-    private boolean productHasGps;
-
-    @Basic
-    @Column(name = "product_cellular")
-    private boolean productHasCellular;
-
-    @Basic
-    @Column(name = "product_total_sold")
-    private int productTotalSold;
-
-    @Basic
-    @Column(name = "product_quantity")
-    private int productQuantity;
-
-    @Basic
-    @Column(name = "product_price")
-    private BigDecimal productPrice;
+    @Column(name = "config_sold_qty", nullable = false)
+    private int configSoldQty;
 
     @Version
     @Column(name = "version_id")
@@ -94,6 +50,7 @@ public class ProductModelEntity {
 
     @ManyToOne
     @JoinColumn(name = "product_id")
+    @JsonIgnore
     private ProductEntity productEntity;
 
     @OneToMany(mappedBy = "model", fetch = FetchType.LAZY)

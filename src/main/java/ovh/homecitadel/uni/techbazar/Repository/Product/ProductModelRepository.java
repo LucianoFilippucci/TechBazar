@@ -5,10 +5,13 @@ import org.springframework.stereotype.Repository;
 import ovh.homecitadel.uni.techbazar.Entity.Product.ProductEntity;
 import ovh.homecitadel.uni.techbazar.Entity.Product.ProductModelEntity;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface ProductModelRepository extends JpaRepository<ProductModelEntity, Long> {
 
-    Optional<ProductModelEntity> findByProductEntity(ProductEntity product);
+    ArrayList<ProductModelEntity> findByProductEntity(ProductEntity product);
+
 }

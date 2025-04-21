@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface UserAddressRepository extends JpaRepository<UserAddressEntity, Long> {
 
     List<UserAddressEntity> findByUserId(String id);
+    Optional<UserAddressEntity> findByIsDefault(Boolean isDefault);
 }

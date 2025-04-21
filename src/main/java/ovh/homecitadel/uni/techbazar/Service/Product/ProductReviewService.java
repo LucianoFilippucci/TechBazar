@@ -4,9 +4,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ovh.homecitadel.uni.techbazar.Entity.Product.ProductEntity;
 import ovh.homecitadel.uni.techbazar.Entity.Product.ProductReviewEntity;
+import ovh.homecitadel.uni.techbazar.Entity.UserLiked;
 import ovh.homecitadel.uni.techbazar.Helper.Exceptions.ObjectNotFoundException;
 import ovh.homecitadel.uni.techbazar.Helper.Exceptions.UnauthorizedAccessException;
 import ovh.homecitadel.uni.techbazar.Helper.Model.NewReviewRequest;
+import ovh.homecitadel.uni.techbazar.Repository.MongoDB.UserLikedRepository;
 import ovh.homecitadel.uni.techbazar.Repository.Product.ProductRepository;
 import ovh.homecitadel.uni.techbazar.Repository.Product.ProductReviewRepository;
 
@@ -20,10 +22,13 @@ public class ProductReviewService {
 
     private final ProductRepository productRepository;
     private final ProductReviewRepository productReviewRepository;
+    private final UserLikedRepository userLikedRepository;
 
-    public ProductReviewService(ProductReviewRepository productReviewRepository, ProductRepository productRepository) {
+
+    public ProductReviewService(ProductReviewRepository productReviewRepository, ProductRepository productRepository, UserLikedRepository userLikedRepository) {
         this.productRepository = productRepository;
         this.productReviewRepository = productReviewRepository;
+        this.userLikedRepository = userLikedRepository;
     }
 
     @Transactional
@@ -74,11 +79,35 @@ public class ProductReviewService {
     }
 
     @Transactional
-    public boolean likeReview(String userId, Long reviewId) throws ObjectNotFoundException {
+    public boolean likedReview(String userId, Long reviewId) throws ObjectNotFoundException {
         Optional<ProductReviewEntity> tmp = this.productReviewRepository.findById(reviewId);
         if(tmp.isEmpty()) throw new ObjectNotFoundException("Review Not Found");
         ProductReviewEntity review = tmp.get();
 
-        return false;
+        Optional<UserLiked> tmp2 = this.userLikedRepository.findByUserId(userId);
+        if(tmp2.isEmpty()) throw new ObjectNotFoundException("User Liked Not Found");
+        UserLiked userLiked = tmp2.get();
+        return userLiked.getLikedReviews().contains(reviewId);
+    }
+
+    @Transactional
+    public boolean likeReview(String userId, Long reviewId) throws ObjectNotFoundException {
+        Optional<ProductReviewEntity> tmp = this.productReviewRepository.findById(reviewId);
+        if(tmp.isEmpty()) throw new ObjectNotFoundException("Review Not Found");
+        ProductReviewEntity review = tmp.get();
+        Optional<UserLiked> tmp2 = this.userLikedRepository.findByUserId(userId);
+        if(tmp2.isEmpty()) throw new ObjectNotFoundException("User Liked Not Found");
+        UserLiked userLiked = tmp2.get();
+        if(!userLiked.getLikedReviews().contains(reviewId))
+            userLiked.getLikedReviews().add(reviewId);
+        else
+            userLiked.getLikedReviews().removeIf(p -> p.equals(reviewId));
+
+        review.setLikes(review.getLikes() + 1);
+
+        this.userLikedRepository.save(userLiked);
+        this.productReviewRepository.save(review);
+
+        return true;
     }
 }

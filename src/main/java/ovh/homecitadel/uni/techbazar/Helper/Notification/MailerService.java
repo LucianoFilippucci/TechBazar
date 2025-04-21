@@ -23,9 +23,9 @@ public class MailerService implements EmailService{
         try {
             SimpleMailMessage mailMessage = new SimpleMailMessage();
 
-            mailMessage.setFrom(messageModel.getSender());
-            mailMessage.setTo(messageModel.getRecipient());
-            mailMessage.setText(messageModel.getMsgBody());
+            mailMessage.setFrom(messageModel.getSenderId());
+            mailMessage.setTo(messageModel.getReceiverId());
+            mailMessage.setText(messageModel.getMessage());
             mailMessage.setSubject(messageModel.getSubject());
 
             this.javaMailSender.send(mailMessage);
@@ -43,9 +43,9 @@ public class MailerService implements EmailService{
         try {
             // Set multipart to true for attachment to be sent
             mimeMessageHelper = new MimeMessageHelper(mimeMessage, true);
-            mimeMessageHelper.setFrom(messageModel.getSender());
-            mimeMessageHelper.setTo(messageModel.getRecipient());
-            mimeMessageHelper.setText(messageModel.getMsgBody());
+            mimeMessageHelper.setFrom(messageModel.getSenderId());
+            mimeMessageHelper.setTo(messageModel.getReceiverId());
+            mimeMessageHelper.setText(messageModel.getMessage());
             mimeMessageHelper.setSubject(messageModel.getSubject());
 
             FileSystemResource file = new FileSystemResource(new File(messageModel.getAttachments()));

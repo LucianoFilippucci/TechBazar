@@ -4,6 +4,8 @@ import lombok.*;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.MongoId;
+import ovh.homecitadel.uni.techbazar.Helper.MessageTypeEnum;
+import ovh.homecitadel.uni.techbazar.Helper.Notification.MessageModel;
 import ovh.homecitadel.uni.techbazar.Helper.Notification.NotificationDetails;
 
 import java.util.Collection;
@@ -20,5 +22,6 @@ public class NotificationEntity {
     private ObjectId notificationId;
     private String userId;
 
-    Collection<NotificationDetails> notificationList;
+
+    Collection<MessageModel> notificationList;
 }

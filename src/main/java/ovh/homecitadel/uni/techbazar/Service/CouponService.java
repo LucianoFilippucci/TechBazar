@@ -135,4 +135,17 @@ public class CouponService {
 
         return true;
     }
+
+    @Transactional
+    public boolean validateCoupon(String coupon) throws CouponException {
+        Optional<CouponEntity> tmp = this.couponRepository.findById(coupon);
+        if(tmp.isEmpty())
+            throw new CouponException("Coupon Not Found");
+        if(tmp.get().getTimesUsed() == tmp.get().getMaxUse())
+            throw new CouponException("Coupon Reached Max Use");
+        if(tmp.get().getExpiration().isBefore(LocalDateTime.now()))
+            throw new CouponException("Coupon Expired");
+
+        return true;
+    }
 }

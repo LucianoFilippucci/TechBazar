@@ -6,6 +6,7 @@ import ovh.homecitadel.uni.techbazar.Entity.Product.ProductCategoryEntity;
 import ovh.homecitadel.uni.techbazar.Helper.Exceptions.ObjectNotFoundException;
 import ovh.homecitadel.uni.techbazar.Repository.Product.ProductCategoryRepository;
 
+import java.util.Collection;
 import java.util.Optional;
 
 @Service
@@ -26,4 +27,11 @@ public class ProductCategoryService {
             return tmp.get();
         throw new ObjectNotFoundException("Category Not Found");
     }
+
+    @Transactional
+    public Collection<ProductCategoryEntity> getAll() {
+        return this.productCategoryRepository.findAll();
+    }
+
+
 }

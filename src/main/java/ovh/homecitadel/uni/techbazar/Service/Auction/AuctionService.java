@@ -12,6 +12,7 @@ import ovh.homecitadel.uni.techbazar.Entity.User.MongoDB.WishlistEntity;
 import ovh.homecitadel.uni.techbazar.Helper.Exceptions.AuctionException;
 import ovh.homecitadel.uni.techbazar.Helper.Exceptions.ObjectNotFoundException;
 import ovh.homecitadel.uni.techbazar.Helper.Exceptions.UnauthorizedAccessException;
+import ovh.homecitadel.uni.techbazar.Helper.MessageTypeEnum;
 import ovh.homecitadel.uni.techbazar.Helper.Model.Auction.AuctionRequest;
 import ovh.homecitadel.uni.techbazar.Helper.Model.Auction.AuctionStatus;
 import ovh.homecitadel.uni.techbazar.Helper.Model.Auction.BidModel;
@@ -21,7 +22,7 @@ import ovh.homecitadel.uni.techbazar.Repository.Auction.MongoDB.BidRepository;
 import ovh.homecitadel.uni.techbazar.Repository.Product.ProductModelRepository;
 import ovh.homecitadel.uni.techbazar.Repository.User.MongoDB.WishlistRepository;
 import ovh.homecitadel.uni.techbazar.Security.KeycloakSecurityUtil;
-import ovh.homecitadel.uni.techbazar.Service.NotificationService;
+import ovh.homecitadel.uni.techbazar.Service.NotificationSystem;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -36,7 +37,7 @@ public class AuctionService {
     private final BidRepository bidRepository;
     private final ProductModelRepository productModelRepository;
 
-    private final NotificationService notificationService;
+    private final NotificationSystem notificationSystem;
     private final KeycloakSecurityUtil keycloakSecurityUtil;
 
     private final WishlistRepository wishlistRepository;
@@ -44,11 +45,11 @@ public class AuctionService {
     @Value("${realm}")
     private String realm;
 
-    public AuctionService(AuctionRepository auctionRepository, BidRepository bidRepository, ProductModelRepository productModelRepository, NotificationService notificationService, KeycloakSecurityUtil keycloakSecurityUtil, WishlistRepository wishlistRepository) {
+    public AuctionService(AuctionRepository auctionRepository, BidRepository bidRepository, ProductModelRepository productModelRepository, NotificationSystem notificationSystem, KeycloakSecurityUtil keycloakSecurityUtil, WishlistRepository wishlistRepository) {
         this.auctionRepository = auctionRepository;
         this.bidRepository = bidRepository;
         this.productModelRepository = productModelRepository;
-        this.notificationService = notificationService;
+        this.notificationSystem = notificationSystem;
         this.keycloakSecurityUtil = keycloakSecurityUtil;
         this.wishlistRepository = wishlistRepository;
     }
@@ -181,12 +182,12 @@ public class AuctionService {
                     tmp.forEach(wishlist -> {
                         MessageModel model = new MessageModel();
                         model.setSubject("Saved Auction has been Started");
-                        model.setMsgBody("Auction with ID [" + auction.getAuctionId() + "] has started and will end " + auction.getEndDate());
-                        model.setSender(null);
-                        model.setRecipient(wishlist.getUserId());
+                        model.setMessage("Auction with ID [" + auction.getAuctionId() + "] has started and will end " + auction.getEndDate());
+                        model.setSenderId(null);
+                        model.setReceiverId(wishlist.getUserId());
                         try {
-
-                            this.notificationService.sendMessage(model);
+                            model.setMessageType(MessageTypeEnum.AUCTION);
+                            this.notificationSystem.createNotification(model);
                         } catch (ObjectNotFoundException e) {
                             // TODO: wtf we do there?
                         }
@@ -206,11 +207,12 @@ public class AuctionService {
             // No one placed a bid, there's no winner.
             //String storeEmail = keycloak.realm(realm).users().get(auction.getStoreId()).toRepresentation().getEmail();
             MessageModel message = new MessageModel();
-            message.setRecipient(auction.getStoreId());
-            message.setSender(null);
+            message.setReceiverId(auction.getStoreId());
+            message.setSenderId(null);
             message.setSubject("Auction Closed without winner.");
-            message.setMsgBody("The auction terminated without having a winner.");
-            this.notificationService.sendMessage(message);
+            message.setMessage("The auction terminated without having a winner.");
+            message.setMessageType(MessageTypeEnum.AUCTION);
+            this.notificationSystem.createNotification(message);
             auction.setAuctionStatus(AuctionStatus.CLOSED);
             auction.setWinnerId("");
         } else {
@@ -224,19 +226,21 @@ public class AuctionService {
                 if(model.getUserId().equals(winnerId)) {
                     // Notify winner
                     MessageModel message = new MessageModel();
-                    message.setSender(null);
-                    message.setRecipient(model.getUserId());
+                    message.setSenderId(null);
+                    message.setReceiverId(model.getUserId());
                     message.setSubject("YOU ARE THE WINNER");
-                    message.setMsgBody("CONGRATULATIONS YOU WON THE AUCTION WITH ID [" + bidEntity.getAuctionId() + "]");
-                    this.notificationService.sendMessage(message);
+                    message.setMessage("CONGRATULATIONS YOU WON THE AUCTION WITH ID [" + bidEntity.getAuctionId() + "]");
+                    message.setMessageType(MessageTypeEnum.AUCTION);
+                    this.notificationSystem.createNotification(message);
                 } else {
                     // Notify everyone else
                     MessageModel message = new MessageModel();
-                    message.setSender(null);
-                    message.setRecipient(model.getUserId());
+                    message.setSenderId(null);
+                    message.setReceiverId(model.getUserId());
                     message.setSubject("YOU LOST THE AUCTION");
-                    message.setMsgBody("SORRY BUT YOU LOST THE AUCTION WITH ID [" + bidEntity.getAuctionId() + "]");
-                    this.notificationService.sendMessage(message);
+                    message.setMessage("SORRY BUT YOU LOST THE AUCTION WITH ID [" + bidEntity.getAuctionId() + "]");
+                    message.setMessageType(MessageTypeEnum.AUCTION);
+                    this.notificationSystem.createNotification(message);
                 }
             }
 

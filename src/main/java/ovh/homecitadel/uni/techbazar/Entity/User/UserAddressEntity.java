@@ -2,11 +2,15 @@ package ovh.homecitadel.uni.techbazar.Entity.User;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.type.NumericBooleanConverter;
+import org.hibernate.type.StandardBooleanConverter;
 import ovh.homecitadel.uni.techbazar.Helper.Model.User.UserAddress;
 
 import java.util.Objects;
 
 
+@Setter
+@Getter
 @Entity
 @Table(name = "user_address", schema = "techbazar")
 public class UserAddressEntity {
@@ -44,6 +48,14 @@ public class UserAddressEntity {
     @Column(name = "version")
     private Long version;
 
+
+    @Basic
+    @Column(name = "address_name")
+    private String addressName;
+
+    @Column(name = "is_default")
+    private boolean isDefault;
+
     public UserAddressEntity() {}
 
     public UserAddressEntity(UserAddress adr, String userId) {
@@ -53,6 +65,8 @@ public class UserAddressEntity {
         this.street = adr.getStreet();
         this.postalCode = adr.getPostalCode();
         this.userId = userId;
+        this.addressName = adr.getAddressName();
+        this.isDefault = adr.isDefaultAddress();
     }
 
 
@@ -77,67 +91,4 @@ public class UserAddressEntity {
         return Objects.hash(addressId, userId, state, country, postalCode, street, civic, version);
     }
 
-    public Long getAddressId() {
-        return addressId;
-    }
-
-    public void setAddressId(Long addressId) {
-        this.addressId = addressId;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public String getState() {
-        return state;
-    }
-
-    public void setState(String state) {
-        this.state = state;
-    }
-
-    public String getCountry() {
-        return country;
-    }
-
-    public void setCountry(String country) {
-        this.country = country;
-    }
-
-    public String getPostalCode() {
-        return postalCode;
-    }
-
-    public void setPostalCode(String postalCode) {
-        this.postalCode = postalCode;
-    }
-
-    public String getStreet() {
-        return street;
-    }
-
-    public void setStreet(String street) {
-        this.street = street;
-    }
-
-    public String getCivic() {
-        return civic;
-    }
-
-    public void setCivic(String civic) {
-        this.civic = civic;
-    }
-
-    public Long getVersion() {
-        return version;
-    }
-
-    public void setVersion(Long version) {
-        this.version = version;
-    }
 }

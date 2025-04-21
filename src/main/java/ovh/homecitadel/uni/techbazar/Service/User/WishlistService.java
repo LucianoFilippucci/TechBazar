@@ -6,12 +6,13 @@ import ovh.homecitadel.uni.techbazar.Entity.Auction.AuctionEntity;
 import ovh.homecitadel.uni.techbazar.Entity.Product.ProductEntity;
 import ovh.homecitadel.uni.techbazar.Entity.User.MongoDB.WishlistEntity;
 import ovh.homecitadel.uni.techbazar.Helper.Exceptions.ObjectNotFoundException;
+import ovh.homecitadel.uni.techbazar.Helper.MessageTypeEnum;
 import ovh.homecitadel.uni.techbazar.Helper.Model.WishlistResponse;
 import ovh.homecitadel.uni.techbazar.Helper.Notification.MessageModel;
 import ovh.homecitadel.uni.techbazar.Repository.Auction.AuctionRepository;
 import ovh.homecitadel.uni.techbazar.Repository.Product.ProductRepository;
 import ovh.homecitadel.uni.techbazar.Repository.User.MongoDB.WishlistRepository;
-import ovh.homecitadel.uni.techbazar.Service.NotificationService;
+import ovh.homecitadel.uni.techbazar.Service.NotificationSystem;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,14 +24,16 @@ public class WishlistService {
     private final ProductRepository productRepository;
     private final AuctionRepository auctionRepository;
 
-    private final NotificationService notificationService;
+    private final NotificationSystem notificationSystem;
 
-    public WishlistService(WishlistRepository wishlistRepository, ProductRepository productRepository, AuctionRepository auctionRepository, NotificationService notificationService) {
+    public WishlistService(WishlistRepository wishlistRepository, ProductRepository productRepository, AuctionRepository auctionRepository, NotificationSystem notificationSystem) {
         this.wishlistRepository = wishlistRepository;
         this.productRepository = productRepository;
         this.auctionRepository = auctionRepository;
-        this.notificationService = notificationService;
+        this.notificationSystem = notificationSystem;
     }
+
+
 
     @Transactional
     public WishlistResponse getWishlist(String userId) throws ObjectNotFoundException {
@@ -46,11 +49,12 @@ public class WishlistService {
             if(tmp2.isEmpty()) {
                 wishlist.getProducts().remove(productId);
                 MessageModel messageModel = new MessageModel();
-                messageModel.setSender(null);
-                messageModel.setRecipient(userId);
+                messageModel.setSenderId(null);
+                messageModel.setReceiverId(userId);
                 messageModel.setSubject("Product No Longer available.");
-                messageModel.setMsgBody("One product you saved is not available anymore.");
-                this.notificationService.sendMessage(messageModel);
+                messageModel.setMessage("One product you saved is not available anymore.");
+                messageModel.setMessageType(MessageTypeEnum.SAVED);
+                this.notificationSystem.createNotification(messageModel);
             }
             else {
                 products.add(tmp2.get());
@@ -62,11 +66,12 @@ public class WishlistService {
             if(tmp3.isEmpty()) {
                 wishlist.getAuctionSaved().remove(auctionId);
                 MessageModel messageModel = new MessageModel();
-                messageModel.setSender(null);
-                messageModel.setRecipient(userId);
+                messageModel.setSenderId(null);
+                messageModel.setReceiverId(userId);
                 messageModel.setSubject("Auction No Longer Available.");
-                messageModel.setMsgBody("Auction with ID [" + auctionId + "] No Longer Available");
-                this.notificationService.sendMessage(messageModel);
+                messageModel.setMessage("Auction with ID [" + auctionId + "] No Longer Available");
+                messageModel.setMessageType(MessageTypeEnum.SAVED);
+                this.notificationSystem.createNotification(messageModel);
             } else {
                 auctions.add(tmp3.get());
             }
@@ -94,9 +99,23 @@ public class WishlistService {
 
         Optional<ProductEntity> tmp2 = this.productRepository.findByProductId(productId);
         if(tmp2.isEmpty()) throw new ObjectNotFoundException("Product Not Found");
-        wishlist.getProducts().add(tmp2.get().getProductId());
+        if(wishlist.getProducts().contains(tmp2.get().getProductId()))
+            wishlist.getProducts().remove(tmp2.get().getProductId());
+        else
+            wishlist.getProducts().add(tmp2.get().getProductId());
+
         this.wishlistRepository.save(wishlist);
         return true;
+    }
+
+    @Transactional
+    public boolean isProductWishlisted(String userId, Long productId) throws ObjectNotFoundException {
+        WishlistEntity wishlist = findOrCreate(userId);
+
+        Optional<ProductEntity> tmp2 = this.productRepository.findByProductId(productId);
+        if(tmp2.isEmpty()) throw new ObjectNotFoundException("Product Not Found");
+
+        return wishlist.getProducts().contains(tmp2.get().getProductId());
     }
 
 
@@ -112,6 +131,7 @@ public class WishlistService {
         }
         return wishlist;
     }
+
     @Transactional
     public boolean saveAuction(String userId, Long auctionId) throws ObjectNotFoundException {
         Optional<WishlistEntity> tmp = this.wishlistRepository.findByUserId(userId);

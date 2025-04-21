@@ -148,15 +148,52 @@ public class ProductReviewController {
     @RequestMapping("/{review-id}/like")
     public ResponseEntity<ResponseModel> likeReview(@AuthenticationPrincipal Jwt jwt, @PathVariable("review-id") Long reviewId) {
 
+        boolean liked = false;
+        HttpStatus status = HttpStatus.OK;
+        String message= "Review Liked.";
+
+        try {
+            liked = this.productReviewService.likeReview(jwt.getSubject(), reviewId);
+        } catch (ObjectNotFoundException e) {
+            status = HttpStatus.NOT_FOUND;
+            message = e.getMessage();
+        }
 
         return ResponseEntity.ok(
                 ResponseModel.builder()
                         .timeStamp(LocalDateTime.now())
-                        .message("")
-                        .reason("Not Implemented")
-                        .status(HttpStatus.NOT_IMPLEMENTED)
-                        .statusCode(HttpStatus.NOT_IMPLEMENTED.value())
-                        .data(Map.of("data", false))
+                        .message(message)
+                        .reason(message)
+                        .status(status)
+                        .statusCode(status.value())
+                        .data(Map.of("data", liked))
+                        .build()
+        );
+    }
+
+    @GetMapping
+    @RequestMapping("/{review-id}/liked")
+    public ResponseEntity<ResponseModel> likedReview(@AuthenticationPrincipal Jwt jwt, @PathVariable("review-id") Long reviewId) {
+        String message = "";
+        String reason = "";
+        HttpStatus status = HttpStatus.OK;
+        boolean response = false;
+        try {
+
+            response = this.productReviewService.likedReview(jwt.getSubject(), reviewId);
+            message = "Review Liked.";
+        } catch (ObjectNotFoundException e) {
+            reason = e.getMessage();
+            status = HttpStatus.NOT_FOUND;
+        }
+        return ResponseEntity.ok(
+                ResponseModel.builder()
+                        .timeStamp(LocalDateTime.now())
+                        .message(message)
+                        .reason(reason)
+                        .statusCode(status.value())
+                        .status(status)
+                        .data(Map.of("data", response))
                         .build()
         );
     }

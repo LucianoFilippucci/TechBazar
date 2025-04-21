@@ -2,6 +2,7 @@ package ovh.homecitadel.uni.techbazar.Controller;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
+import lombok.val;
 import org.apache.coyote.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -186,4 +187,31 @@ public class CouponController {
         );
     }
 
+
+    @PostMapping
+    @RequestMapping("/validate")
+    public ResponseEntity<ResponseModel> validateCoupon(@AuthenticationPrincipal Jwt jwt, @RequestBody String coupon) {
+        String message = "";
+        String reason = "";
+        HttpStatus status = HttpStatus.OK;
+        boolean valid = false;
+
+        try {
+            valid = this.couponService.validateCoupon(coupon);
+        } catch (CouponException e) {
+          reason = e.getMessage();
+          status = HttpStatus.BAD_REQUEST;
+        }
+
+        return ResponseEntity.ok(
+                ResponseModel.builder()
+                        .timeStamp(LocalDateTime.now())
+                        .message(message)
+                        .reason(reason)
+                        .status(status)
+                        .statusCode(status.value())
+                        .data(Map.of("valid", valid))
+                        .build()
+        );
+    }
 }

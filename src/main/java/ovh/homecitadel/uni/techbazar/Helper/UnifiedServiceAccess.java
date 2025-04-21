@@ -5,6 +5,8 @@ import ovh.homecitadel.uni.techbazar.Entity.Product.ProductCategoryEntity;
 import ovh.homecitadel.uni.techbazar.Entity.Product.ProductEntity;
 import ovh.homecitadel.uni.techbazar.Entity.Product.ProductModelEntity;
 import ovh.homecitadel.uni.techbazar.Helper.Exceptions.ObjectNotFoundException;
+import ovh.homecitadel.uni.techbazar.Helper.Model.Model;
+import ovh.homecitadel.uni.techbazar.Helper.Model.ProductResponse;
 import ovh.homecitadel.uni.techbazar.Repository.Product.ProductCategoryRepository;
 import ovh.homecitadel.uni.techbazar.Service.Product.ProductCategoryService;
 import ovh.homecitadel.uni.techbazar.Service.Product.ProductModelService;
@@ -29,7 +31,13 @@ public class UnifiedServiceAccess {
     }
 
 
-    public ProductEntity getProductEntity(Long productId) throws ObjectNotFoundException {
+    public ProductResponse getProductEntity(Long productId) throws ObjectNotFoundException {
         return this.productService.getById(productId);
     }
+
+    public Model getModelEntity(Long modelId) throws ObjectNotFoundException {
+        return this.productModelService.getModel(modelId);
+    }
+
+
 }

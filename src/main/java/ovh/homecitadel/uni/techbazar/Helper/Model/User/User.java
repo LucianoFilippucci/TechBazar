@@ -19,4 +19,5 @@ public class User {
     @JsonProperty(value = "pIva")
     private String pIva;
     private String cartId;
+    private String phoneNumber;
 }

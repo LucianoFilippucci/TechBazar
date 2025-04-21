@@ -6,6 +6,8 @@ import lombok.Setter;
 
 import java.util.Objects;
 
+@Setter
+@Getter
 public class UserAddress {
     @JsonProperty("state")
     private String state;
@@ -17,6 +19,11 @@ public class UserAddress {
     private String street;
     @JsonProperty("civic")
     private String civic;
+    @JsonProperty("address_name")
+    private String addressName;
+
+    @JsonProperty("default")
+    private boolean defaultAddress;
 
     @Override
     public String toString() {
@@ -40,12 +47,14 @@ public class UserAddress {
     public UserAddress() {
     }
 
-    public UserAddress(String state, String country, String postalCode, String street, String civic) {
+    public UserAddress(String state, String country, String postalCode, String street, String civic, String addressName, boolean isDefault) {
         this.state = state;
         this.country = country;
         this.postalCode = postalCode;
         this.street = street;
         this.civic = civic;
+        this.addressName = addressName;
+        this.defaultAddress = isDefault;
     }
 
     @Override
@@ -53,43 +62,4 @@ public class UserAddress {
         return Objects.hash(state, country, postalCode, street, civic);
     }
 
-    public void setState(String state) {
-        this.state = state;
-    }
-
-    public void setCountry(String country) {
-        this.country = country;
-    }
-
-    public void setPostalCode(String postalCode) {
-        this.postalCode = postalCode;
-    }
-
-    public void setStreet(String street) {
-        this.street = street;
-    }
-
-    public void setCivic(String civic) {
-        this.civic = civic;
-    }
-
-    public String getState() {
-        return state;
-    }
-
-    public String getCountry() {
-        return country;
-    }
-
-    public String getPostalCode() {
-        return postalCode;
-    }
-
-    public String getStreet() {
-        return street;
-    }
-
-    public String getCivic() {
-        return civic;
-    }
 }
